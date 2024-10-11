@@ -10,6 +10,7 @@ package demorobocode;
  */
 import robocode.AdvancedRobot;
 import robocode.Robot;
+import robocode.ScannedRobotEvent;
 
 public class DemoRobocode extends AdvancedRobot{
     @Override
@@ -38,43 +39,6 @@ public class DemoRobocode extends AdvancedRobot{
    // fire(Rules.)
     }
             
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    g.DrawOval(
-
-    @Override
-    public double getX() {
-        return super.getX(); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
-    }
-)this.
-            
-            
-            
 }
+    
+    
