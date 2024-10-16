@@ -4,6 +4,9 @@
  */
 package demorobocode;
 
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.List;
 import robocode.ScannedRobotEvent;
 
 /**
@@ -13,10 +16,12 @@ import robocode.ScannedRobotEvent;
 public class EstatTimidin_1 extends Estat {
     public EstatTimidin_1(TimidinRobot robot) {
         super(robot);
+        System.out.println("NOU ESTAT\n");
     }
     
     @Override 
     public void onScannedRobot(ScannedRobotEvent e){
+        
         System.out.println("==================================\n");
         System.out.println("Scanned\n");
         // Informació inicial
@@ -42,49 +47,48 @@ public class EstatTimidin_1 extends Estat {
         System.out.println("xEnemic: " + xEnemic + "\n");
         System.out.println("yEnemic: " + yEnemic + "\n");
         
-        //Calculem les distancies de totes les esquines:
-        double dist1 = distancia(xEnemic, yEnemic, 0.0f, 0.0f);
-        double dist2 = distancia(xEnemic, yEnemic, 0.0f, alturaTerreny);
-        double dist3 = distancia(xEnemic, yEnemic, ampleTerreny, 0.0f);
-        double dist4 = distancia(xEnemic, yEnemic, ampleTerreny, alturaTerreny);
-        
-        // Escollim la més alluny
-        double xEscollida = 0.0f;
-        double yEscollida = 0.0f;
-        double maxDist = dist1;
+        //Calculem totes les cantonades:
+        List<Point2D.Double> cantonades = new ArrayList<>();
+        cantonades.add(new Point2D.Double(0, 0));                 
+        cantonades.add(new Point2D.Double(ampleTerreny, 0));             
+        cantonades.add(new Point2D.Double(0, alturaTerreny));              
+        cantonades.add(new Point2D.Double(ampleTerreny, alturaTerreny));          
 
-        // Cambiar por un while
-        if (dist2 > maxDist) {
-            yEscollida = alturaTerreny;
-            maxDist = dist2;
-        }
-        if (dist3 > maxDist) {
-            xEscollida = ampleTerreny;
-            yEscollida = 0.0f;
-            maxDist = dist3;
-        }
-        if (dist4 > maxDist) {
-            xEscollida = ampleTerreny;
-            yEscollida = alturaTerreny;
-            maxDist = dist4;
+        //Cantonada inicial
+        Point2D.Double cantonadaMesLluny = cantonades.get(0);
+        double maxDistancia = _r.distancia(xEnemic, yEnemic, cantonadaMesLluny.x, cantonadaMesLluny.y);
+
+        //Comprovem quina és la cantonada més allunyada
+        int i = 1;
+        while (i < cantonades.size()) {
+            Point2D.Double contonada = cantonades.get(i);
+            double dist = _r.distancia(xEnemic, yEnemic, contonada.x, contonada.y);
+
+            if (dist > maxDistancia) {
+                maxDistancia = dist;
+                cantonadaMesLluny = contonada;
+            }
+
+            i++;
         }
         
+        //Imprimim la informació obtinguda
         System.out.println("Altura terreny: " +_r.getBattleFieldHeight());
         System.out.println("Amplada terreny: " +_r.getBattleFieldWidth() + "\n");
-        System.out.println("Cantonada més allunyat: x = " + xEscollida + " y = " + yEscollida + "\n");
+        System.out.println("Cantonada més allunyat: x = " + cantonadaMesLluny.x + " y = " + cantonadaMesLluny.y + "\n");
         
-        //Calculem la direcció:
-        double angleDeGir = Math.atan2(xEscollida-_r.getX(), yEscollida-_r.getY());
+        // Calculem l'angle cap a la cantonada més llunyana
+        double dx = cantonadaMesLluny.x - _r.getX();
+        double dy = cantonadaMesLluny.y - _r.getY();
+        double angleCantonada = Math.toDegrees(Math.atan2(dx, dy)); // Angle cap a la cantonada en graus
         
-        //Apliquem els canvis
-        _r.setMou(true);
-        _r.setMoviment(xEscollida-_r.getX(), yEscollida-_r.getY());
+        // Normalitzem l'angle perquè estigui entre 0 i 360 graus
+        angleCantonada = (angleCantonada + 360) % 360;
+        System.out.println("Angle fins la cantonada més allunyada: " + angleCantonada + "\n");
+        
+        // Girem el robot cap a la cantonada més allunyada
         _r.setGira(true);
-        _r.setGraus(angleDeGir-_r.getHeading());
+        _r.setGraus(angleCantonada);
     }
     
-    // Método auxiliar para calcular la distancia entre dos puntos
-    private double distancia(double x1, double y1, double x2, double y2) {
-        return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-    }
 }
