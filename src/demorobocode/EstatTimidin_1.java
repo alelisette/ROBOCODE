@@ -4,91 +4,100 @@
  */
 package demorobocode;
 
+import robocode.*;
 import java.awt.geom.Point2D;
-import java.util.ArrayList;
-import java.util.List;
-import robocode.ScannedRobotEvent;
 
 /**
  *
  * @author marc
  */
 public class EstatTimidin_1 extends Estat {
+    
+    private boolean _scanIzquierda;
+    private boolean _scanDerecha;
+    private boolean _scanCentro;
+    private int _contador;
+    
     public EstatTimidin_1(TimidinRobot robot) {
         super(robot);
-        System.out.println("NOU ESTAT\n");
+        System.out.println("ESTAT 1\n");
+        _scanIzquierda = true;
+        _scanDerecha = false;
+        _scanCentro = false;
+        _contador = 0;
+    }
+    
+    @Override
+    void torn(){
+        mou(_r.logic.getCantonadaMesLluny());
+        escanejar();
+        if(_r.logic.compareDoubles(_r.getX(), _r.logic.getCantonadaMesLluny().x, 40) && 
+                _r.logic.compareDoubles(_r.getY(), _r.logic.getCantonadaMesLluny().y, 40)){
+            System.out.println("FINAL ESTAT 1\n");
+            _r.logic.setEstat(new EstatTimidin_2(_r));
+        } 
     }
     
     @Override 
     public void onScannedRobot(ScannedRobotEvent e){
-        
         System.out.println("==================================\n");
         System.out.println("Scanned\n");
-        // Informació inicial
-        double x = _r.getX();
-        double y = _r.getY();
-        double angleRadar = e.getBearing(); // Angle relatiu a l'enemic
-        angleRadar = (_r.getHeading()+angleRadar)%360; // Angle absolut a l'enemic
-        //En cas d'un resultat negatiu, apliquem el modul
-        if(angleRadar < 0){
-            angleRadar += 360;
+        System.out.println("Distancia: "+ e.getDistance());
+        if(e.getDistance() < 250.0) {
+            if(e.getDistance() < 100){
+                _contador = 1;
+                _r.setBack(50);
+            } 
+            _r.setTurnRight(-(300/e.getBearing()));
         }
-        System.out.println("angleRadar: " + angleRadar + "\n");
-        angleRadar = Math.toRadians(angleRadar);
-        double distanciaEnemic = e.getDistance();
-        System.out.println("distanciaEnemic: " + distanciaEnemic + "\n");
-        double ampleTerreny = _r.getBattleFieldWidth();
-        double alturaTerreny = _r.getBattleFieldHeight();
-                
-        //Calcul posició robot enemic
-        double xEnemic = x + distanciaEnemic * Math.sin(angleRadar);
-        double yEnemic = y + distanciaEnemic * Math.cos(angleRadar);
-        
-        System.out.println("xEnemic: " + xEnemic + "\n");
-        System.out.println("yEnemic: " + yEnemic + "\n");
-        
-        //Calculem totes les cantonades:
-        List<Point2D.Double> cantonades = new ArrayList<>();
-        cantonades.add(new Point2D.Double(0, 0));                 
-        cantonades.add(new Point2D.Double(ampleTerreny, 0));             
-        cantonades.add(new Point2D.Double(0, alturaTerreny));              
-        cantonades.add(new Point2D.Double(ampleTerreny, alturaTerreny));          
-
-        //Cantonada inicial
-        Point2D.Double cantonadaMesLluny = cantonades.get(0);
-        double maxDistancia = _r.distancia(xEnemic, yEnemic, cantonadaMesLluny.x, cantonadaMesLluny.y);
-
-        //Comprovem quina és la cantonada més allunyada
-        int i = 1;
-        while (i < cantonades.size()) {
-            Point2D.Double contonada = cantonades.get(i);
-            double dist = _r.distancia(xEnemic, yEnemic, contonada.x, contonada.y);
-
-            if (dist > maxDistancia) {
-                maxDistancia = dist;
-                cantonadaMesLluny = contonada;
-            }
-
-            i++;
-        }
-        
-        //Imprimim la informació obtinguda
-        System.out.println("Altura terreny: " +_r.getBattleFieldHeight());
-        System.out.println("Amplada terreny: " +_r.getBattleFieldWidth() + "\n");
-        System.out.println("Cantonada més allunyat: x = " + cantonadaMesLluny.x + " y = " + cantonadaMesLluny.y + "\n");
-        
-        // Calculem l'angle cap a la cantonada més llunyana
-        double dx = cantonadaMesLluny.x - _r.getX();
-        double dy = cantonadaMesLluny.y - _r.getY();
-        double angleCantonada = Math.toDegrees(Math.atan2(dx, dy)); // Angle cap a la cantonada en graus
-        
-        // Normalitzem l'angle perquè estigui entre 0 i 360 graus
-        angleCantonada = (angleCantonada + 360) % 360;
-        System.out.println("Angle fins la cantonada més allunyada: " + angleCantonada + "\n");
-        
-        // Girem el robot cap a la cantonada més allunyada
-        _r.setGira(true);
-        _r.setGraus(angleCantonada);
     }
     
+    
+    private void mou(Point2D.Double punt) {
+        _r.logic.recalcularAngleCantonada(_r.getX(), _r.getY(), _r.getHeading());
+        _r.turnRight(_r.logic.getGraus()/2);
+        if(_contador==0){
+            _r.setAhead(Math.hypot(punt.x-_r.getX(), punt.y-_r.getY())/5);
+        } else {
+            _contador -= 1;
+        }
+    }
+    
+    private void escanejar(){
+        // Escaneamos obstaculos:
+        if (_scanIzquierda) {
+            // Gira 22.5 grados hacia la izquierda desde la posición actual
+            _r.setTurnRadarLeft(22.5);
+            _scanIzquierda = false;  // Ja hem escanejat l'esquerra
+            _scanCentro = true;      // Ara tornem al centre
+        } else if (_scanCentro) {
+            // Gira 45 graus a la dreta per a cobrir el centre i la dreta
+            _r.setTurnRadarRight(45);
+            _scanCentro = false;    // Ja hem escanejat el centre
+            _scanDerecha = true;    // Ara anem a la dreta
+        } else if (_scanDerecha) {
+            // Gira 22.5 graus a l'esquerra per a tornar al centre
+            _r.setTurnRadarLeft(22.5);
+            _scanDerecha = false;  
+            _scanIzquierda = true;  // Tornem a l'esquerra per a reiniciar el cicle
+        }
+    }
+    
+    @Override
+    void onHitRobot(HitRobotEvent e) {        
+        _r.setBack(40);
+        _r.turnRight(90);
+    }
+
+    @Override
+    void onHitWall(HitWallEvent e) {
+        System.out.println("Wall Hit\n");
+        _r.setTurnRight(-e.getBearing());
+        _r.setAhead(10);    
+    }
+
+    @Override
+    void onRobotDeath(RobotDeathEvent e) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
 }

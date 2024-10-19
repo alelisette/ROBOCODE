@@ -4,8 +4,7 @@
  */
 package demorobocode;
 
-import robocode.Robot;
-import robocode.ScannedRobotEvent;
+import robocode.*;
 
 /**
  *
@@ -17,7 +16,11 @@ public abstract class Estat {
     public Estat(TimidinRobot r){
         _r = r;
     }
-    
-    //abstract void torn();
+ 
+    abstract void torn();
     abstract void onScannedRobot(ScannedRobotEvent e);
+    abstract void onHitWall(HitWallEvent e);
+    abstract void onHitRobot(HitRobotEvent e);
+    abstract void onRobotDeath(RobotDeathEvent e);
+
 }
