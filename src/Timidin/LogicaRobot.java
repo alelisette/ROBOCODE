@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package demorobocode;
+package Timidin;
 
 import java.awt.geom.Point2D;
 
@@ -17,11 +17,8 @@ public class LogicaRobot {
     private boolean _radarCentrat;
     private double _graus;
     private boolean _mou;
-    private double _moviment;
-    private double _grausDesviacio;
-    private boolean _cercaObstaculo;
     //private double _grausRadar;
-    private Point2D.Double _cantonadaMesLluny;
+    private final Point2D.Double _cantonadaMesLluny;
     
     public LogicaRobot(){
         _gira = false;
@@ -29,9 +26,6 @@ public class LogicaRobot {
         _radarCentrat = false;
         _graus = 0.0;
         _mou = false;
-        _moviment = 0.0;
-        _grausDesviacio = 0.0;
-        _cercaObstaculo = false;
         _cantonadaMesLluny = new Point2D.Double(0,0);
     }
     
@@ -81,18 +75,6 @@ public class LogicaRobot {
     
     public boolean getRadarCentrat(){
         return _radarCentrat;
-    }
-    
-    public void setMoviment(double mov){
-        _moviment = mov;
-    }
-    
-    public void setGrausDesviacio(double graus){
-        _grausDesviacio = graus;
-    }
-    
-    public void setCercaObstaculo(boolean setEstat){
-        _cercaObstaculo = setEstat;
     }
     
     public double normalitzarAngle(double angle){

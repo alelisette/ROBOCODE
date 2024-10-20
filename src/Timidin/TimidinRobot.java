@@ -2,11 +2,11 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
  */
-package demorobocode;
+package Timidin;
 
 /**
  *
- * @author Aleli
+ * @author marc
  */
 import java.awt.Color;
 import robocode.*;
@@ -32,7 +32,6 @@ public class TimidinRobot extends AdvancedRobot{
             logic.getEstat().torn();
             execute();
         }
-       // team.members = 
     }   
     
     @Override

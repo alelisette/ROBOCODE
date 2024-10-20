@@ -1,4 +1,4 @@
-package demorobocode;
+package Timidin;
 
 import robocode.*;
 
