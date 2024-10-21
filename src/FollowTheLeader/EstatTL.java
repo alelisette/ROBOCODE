@@ -29,6 +29,12 @@ public class EstatTL extends Estat{
         _r.setBulletColor(Color.GREEN);  
         inicializarEsquinas();
         proximaEsquina = calcularEsquinaMasCercana();
+        _r._logic.resetGun();
+        _r._logic.resetRadar();
+        // Desvincular el cañón del radar para que se muevan de manera independiente
+        _r.setAdjustGunForRobotTurn(true);
+        _r.setAdjustRadarForGunTurn(true);
+        _r.setAdjustRadarForRobotTurn(true);
     }
 
     // Inicializar las 4 esquinas del campo de batalla
@@ -84,6 +90,7 @@ public class EstatTL extends Estat{
         } else {
             // Mover hacia la esquina actual
             _r._logic.moverACoordenadas(destino.x, destino.y);
+            _r._logic.resetRadar();
             _r._logic.escanejar();
         }
          _r._logic.enviarCoordenades();

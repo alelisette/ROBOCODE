@@ -32,6 +32,9 @@ public class EstatSeguidor extends Estat {
         _r.setRadarColor(Color.ORANGE);
         _r.setScanColor(Color.ORANGE);
         _r.setBulletColor(Color.ORANGE);
+         // Desvincular el cañón del radar para que se muevan de manera independiente
+        _r.setAdjustGunForRobotTurn(true);
+        _r.setAdjustRadarForGunTurn(true);
     }
 
     @Override
@@ -39,10 +42,9 @@ public class EstatSeguidor extends Estat {
         _r._logic.enviarCoordenades();
         if(_r._logic.hasEnemy()){
             _r._logic.atacarEnemigo();
-        } else {
-            _r._logic.resetGun();
-            _r._logic.escanejar();
         }
+        _r._logic.resetRadar();
+        _r._logic.escanejar();
         if(puntX!=0.0){
             _r._logic.moverSeguidorACoordenadas(puntX, puntY);
         }

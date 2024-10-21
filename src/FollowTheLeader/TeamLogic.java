@@ -135,26 +135,8 @@ public class TeamLogic {
     }
         
     public void dispara(){
-        /*if (Math.abs(_r.getTurnRemaining()) < 10 && _contador != 0) {
-            _r.setAdjustRadarForGunTurn(true);
-
-            // Calcular la potencia de disparo inversamente proporcional a la distancia
-            double firePower = Math.min(700 / _enemy.getDistance(), 3); // Máximo de potencia es 3
-            firePower = Math.max(firePower, 0.1); // Potencia mínima razonable (ej. 0.1)
-
-            // Calcular el ángulo hacia el enemigo
-            double angleToEnemy = _r.getHeading() + _enemy.getBearing();  // Angulo hacia el enemigo
-            double gunTurnAngle = normalizarAngulo(angleToEnemy - _r.getGunHeading());  // Ángulo que debe girar el cañón
-
-            // Girar el cañón hacia el enemigo
-            _r.setTurnGunRight(gunTurnAngle);
-
-            // Verificar si el cañón está alineado con el enemigo para disparar
-            if (Math.abs(gunTurnAngle) < 5) {  // Solo disparar si el cañón está casi alineado
-                System.out.println("SetFire " + firePower + "\n");
-                _r.setFire(firePower);
-            }
-        }*/
+        calcularEnemyPos();
+        atacarEnemigo();
     }
 
     public double normalizarAngulo(double angulo) {
@@ -169,21 +151,23 @@ public class TeamLogic {
     
     public void escanejar(){
         // Escaneamos obstaculos:
-        if (_scanIzquierda) {
-            // Gira 22.5 grados hacia la izquierda desde la posición actual
-            _r.setTurnRadarLeft(15);
-            _scanIzquierda = false;  // Ja hem escanejat l'esquerra
-            _scanCentro = true;      // Ara tornem al centre
-        } else if (_scanCentro) {
-            // Gira 45 graus a la dreta per a cobrir el centre i la dreta
-            _r.setTurnRadarRight(30);
-            _scanCentro = false;    // Ja hem escanejat el centre
-            _scanDerecha = true;    // Ara anem a la dreta
-        } else if (_scanDerecha) {
-            // Gira 22.5 graus a l'esquerra per a tornar al centre
-            _r.setTurnRadarLeft(15);
-            _scanDerecha = false;  
-            _scanIzquierda = true;  // Tornem a l'esquerra per a reiniciar el cicle
+        if(compareDoubles(_r.getHeading(),_r.getRadarHeading())){
+            if (_scanIzquierda) {
+                // Gira 22.5 grados hacia la izquierda desde la posición actual
+                _r.setTurnRadarLeft(15);
+                _scanIzquierda = false;  // Ja hem escanejat l'esquerra
+                _scanCentro = true;      // Ara tornem al centre
+            } else if (_scanCentro) {
+                // Gira 45 graus a la dreta per a cobrir el centre i la dreta
+                _r.setTurnRadarRight(30);
+                _scanCentro = false;    // Ja hem escanejat el centre
+                _scanDerecha = true;    // Ara anem a la dreta
+            } else if (_scanDerecha) {
+                // Gira 22.5 graus a l'esquerra per a tornar al centre
+                _r.setTurnRadarLeft(15);
+                _scanDerecha = false;  
+                _scanIzquierda = true;  // Tornem a l'esquerra per a reiniciar el cicle
+            }
         }
     }
     
@@ -203,6 +187,7 @@ public class TeamLogic {
         _contador = 2;
         
         if(!isTeammate()){
+            _enemy = _obstacle;
             dispara();
         }
     }
@@ -390,8 +375,7 @@ public class TeamLogic {
     }
     
     public void atacarEnemigo() {
-        if(_enemy!=null){
-            System.out.println("Posicion del enemigo: x = " + _enemyX + " y = " + _enemyY);
+        if(_enemy!=null){            
             double futureX = _enemyX + Math.sin(Math.toRadians(_enemyHeading)) * _enemyVelocity * 20;
             double futureY = _enemyY + Math.cos(Math.toRadians(_enemyHeading)) * _enemyVelocity * 20;
 
@@ -412,9 +396,11 @@ public class TeamLogic {
     }
     
     public void resetGun(){
-        if(!compareDoubles(_r.getHeading(), _r.getGunHeading())){
-            _r.setTurnGunRight(_r.getHeading()-_r.getGunHeading());
-        }
+        _r.setTurnGunRight(_r.getHeading()-_r.getGunHeading());
+    }
+    
+    public void resetRadar(){
+        _r.setTurnRadarRight(_r.getHeading()-_r.getRadarHeading());
     }
     
     // Método auxiliar para calcular el ángulo entre dos puntos (igual que antes)
