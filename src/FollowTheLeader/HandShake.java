@@ -8,25 +8,46 @@ import java.util.List;
 import java.util.Map;
 import robocode.*;
 
-// Clase principal Handsahe
+/**
+ * Classe que representa el procés de negociació ('handshake') entre els robots
+ * d'un equip per determinar la jerarquia i qui serà el Team Leader (TL).
+ * En aquest estat, els robots decideixen qui és el líder, intercanvien posicions,
+ * calculen les distàncies entre ells i organitzen la jerarquia.
+ */
 public class HandShake extends Estat {
-    private boolean isTL; // Saber si este robot es el Team Leader
-    private String tlName; // Nombre del TL
-    private final Map<String, Double> distances = new HashMap<>(); // Almacenar las distancias de cada robot al TL
-    private Map<String, Integer> hierarchy = new HashMap<>(); // Almacenar la jerarquía asignada
+    /** Indica si aquest robot és el Team Leader (TL). */
+    private boolean isTL; 
+    /** Nom del Team Leader (TL). */
+    private String tlName;
+    /** Emmagatzema les distàncies de cada robot al TL. */
+    private final Map<String, Double> distances = new HashMap<>();
+    /** Emmagatzema la jerarquia assignada als robots de l'equip. */
+    private Map<String, Integer> hierarchy = new HashMap<>();
+     /** Nombre de confirmacions rebudes dels robots. */
     private int confirmationsReceived; // Número de confirmaciones de los robots
     
+    /**
+     * Constructor de la classe HandShake.
+     * Inicialitza els valors bàsics del procés de negociació.
+     * 
+     * @param r l'equip RealSteal al qual pertany el robot.
+     */
     public HandShake(RealStealTeam r) {
         super(r);
         this.confirmationsReceived = 0;
     }
-
+ 
+    /**
+     * Mètode que s'executa a cada cicle del robot. Si encara no s'ha definit un
+     * Team Leader, es realitza una elecció aleatòria. Si ja s'ha definit, els
+     * robots que no són líders envien les seves coordenades al TL.
+     */
     @Override
     void torn() {
         // Si aún no se ha definido el TL, iniciamos la elección aleatoria
         if (tlName == null) {
             System.out.println("Eleccion TL: " + Math.random());
-            if (Math.random() < 0.01) { // 1% de probabilidad de declararse líder
+            if (Math.random() < 0.25) { // 25% de probabilidad de declararse líder
                 isTL = true;
                 tlName = _r.getName();
                 // Enviamos un mensaje a todos diciendo que este robot es el TL
@@ -48,16 +69,39 @@ public class HandShake extends Estat {
         }
     }
 
+    /**
+     * No realitza cap acció quan es detecta un altre robot en aquest estat.
+     * 
+     * @param e l'esdeveniment d'escaneig d'un altre robot.
+     */
     @Override
     void onScannedRobot(ScannedRobotEvent e) {
         // Nada en esta fase
     }
 
+    /**
+     * Gestiona els missatges rebuts d'altres robots. Els missatges poden contenir
+     * informació sobre el TL, posicions d'altres robots, jerarquies assignades
+     * i confirmacions de missatges rebuts.
+     * 
+     * @param e l'esdeveniment de missatge rebut.
+     */
     @Override
     void onMessageReceived(MessageEvent e) {
         if (e.getMessage() instanceof Messages.TeamLeader msg) {
-            this.tlName = msg.getTlName(); // Recibimos el nombre del TL
-            System.out.println("TL: Elejido" + tlName);
+            if(isTL){
+                try {
+                    _r.broadcastMessage(new Messages.ErrorHandShake());
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            } else {
+                this.tlName = msg.getTlName(); // Recibimos el nombre del TL
+                System.out.println("TL: Elejido" + tlName);
+            }
+        } else if(e.getMessage() instanceof Messages.ErrorHandShake){
+            this.tlName = null;
+            isTL = false;
         } else if (e.getMessage() instanceof Messages.Position posMsg) {
             if (isTL) {
                 // Si soy el TL, calculo la distancia entre cada robot
@@ -101,6 +145,12 @@ public class HandShake extends Estat {
         }
     }
 
+    
+    /**
+     * Reorganitza la jerarquia quan el Team Leader actual mor.
+     * 
+     * @param event l'esdeveniment de mort d'un robot.
+     */
     @Override
     void onRobotDeath(RobotDeathEvent event) {
         if (event.getName().equals(tlName)) {
@@ -127,17 +177,33 @@ public class HandShake extends Estat {
         }
     }
 
+    /**
+     * No realitza cap acció al pintar la pantalla en aquest estat.
+     * 
+     * @param g l'objecte Graphics2D que permet dibuixar a la pantalla.
+     */
     @Override
     void onPaint(Graphics2D g) {
         //
     }
 
-    // Método para calcular la distancia entre dos puntos
+     /**
+     * Calcula la distància entre dos punts donats (x1, y1) i (x2, y2).
+     * 
+     * @param x1 la coordenada X del primer punt.
+     * @param y1 la coordenada Y del primer punt.
+     * @param x2 la coordenada X del segon punt.
+     * @param y2 la coordenada Y del segon punt.
+     * @return la distància calculada entre els dos punts.
+     */
     private double calcularDistancia(double x1, double y1, double x2, double y2) {
         return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     }
 
-    // Método para asignar la jerarquía en función de las distancias
+    /**
+     * Assigna la jerarquia als robots de l'equip en funció de les seves distàncies al TL.
+     * El robot més proper al TL rep una posició superior en la jerarquia.
+     */
     private void asignarJerarquia() {
         // Creamos una lista de entradas del mapa (robot, distancia)
         List<Map.Entry<String, Double>> entries = new ArrayList<>(distances.entrySet());
@@ -152,7 +218,9 @@ public class HandShake extends Estat {
         }
     }
 
-    // Método para enviar la jerarquía a todos los robots
+    /**
+     * Envia la jerarquia establerta a tots els robots de l'equip.
+     */
     private void enviarJerarquia() {
         try {
             _r.broadcastMessage(new Messages.Hierarchy(hierarchy));
@@ -161,7 +229,10 @@ public class HandShake extends Estat {
         }
     }
     
-    // Método para cambiar de estado una vez completada la jerarquía
+    /**
+     * Canvia l'estat del robot i de tots els altres robots a l'estat següent,
+     * un cop la jerarquia ha estat establerta i confirmada.
+     */
     private void cambiarEstadoParaTodos() {
         try {
             TeamLogic.setJerarquia(hierarchy); // Guardamos la jerarquía globalmente
@@ -179,6 +250,11 @@ public class HandShake extends Estat {
         }
     }
 
+    /**
+     * Gestiona l'esdeveniment quan el robot colpeja un altre robot.
+     * 
+     * @param event L'esdeveniment de col·lisió.
+     */
     @Override
     void onHitRobot(HitRobotEvent event) {
         _r.setBack(10);

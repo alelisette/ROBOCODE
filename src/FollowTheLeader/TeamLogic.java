@@ -13,26 +13,93 @@ import java.util.Objects;
 import robocode.ScannedRobotEvent;
 
 /**
- *
+ * La classe TeamLogic gestiona la lògica d'equip per un equip de robots, 
+ * incloent l'estructura de jerarquia, la coordinació 
+ * de moviments, l'atac d'enemics i l'esquiva d'obstacles. 
+ * Aquesta classe treballa amb informació compartida entre els robots de l'equip, 
+ * utilitzant comunicació per missatgeria.
+ * 
  * @author marc
  */
 public class TeamLogic {
-    private final RealStealTeam _r;
-    private ScannedRobotEvent _obstacle;
-    private ScannedRobotEvent _enemy;
-    private double _enemyX;
-    private double _enemyY;
-    private double _enemyHeading;
-    private double _enemyVelocity;
-    private static Map<String, Integer> jerarquia = new HashMap<>(); // Jerarquía global
-    private boolean _scanIzquierda;
-    private boolean _scanDerecha;
-    private boolean _scanCentro;
-    private int _contador = 0;
-    private boolean _cambioRoles;
-    private long lastRoleChangeTime; // Guardará el valor del último turno en que se cambió el rol
+    /**
+    * Equip RealStealTeam associat a aquesta lògica d'equip.
+    */
+   private final RealStealTeam _r;
 
-   
+   /**
+    * Darrer robot escanejat considerat com a obstacle.
+    */
+   private ScannedRobotEvent _obstacle;
+
+   /**
+    * Darrer robot escanejat considerat com a enemic.
+    */
+   private ScannedRobotEvent _enemy;
+
+   /**
+    * Coordenada X de la posició actual de l'enemic.
+    */
+   private double _enemyX;
+
+   /**
+    * Coordenada Y de la posició actual de l'enemic.
+    */
+   private double _enemyY;
+
+   /**
+    * Direcció (en graus) en què es desplaça l'enemic.
+    */
+   private double _enemyHeading;
+
+   /**
+    * Velocitat actual de l'enemic.
+    */
+   private double _enemyVelocity;
+
+   /**
+    * Jerarquia global de l'equip, que defineix el nivell de cada robot.
+    */
+   private static Map<String, Integer> jerarquia = new HashMap<>();
+
+   /**
+    * Indicador de si el radar ha d'escanejar a l'esquerra.
+    */
+   private boolean _scanIzquierda;
+
+   /**
+    * Indicador de si el radar ha d'escanejar a la dreta.
+    */
+   private boolean _scanDerecha;
+
+   /**
+    * Indicador de si el radar ha d'escanejar al centre.
+    */
+   private boolean _scanCentro;
+
+   /**
+    * Comptador per gestionar el temps d'esquiva d'obstacles.
+    */
+   private int _contador = 0;
+
+   /**
+    * Indicador de si s'han intercanviat els rols en l'equip.
+    */
+   private boolean _cambioRoles;
+
+   /**
+    * Temps del darrer canvi de rol, guardat com a mil·lisegons.
+    */
+   private long lastRoleChangeTime; 
+
+
+   /**
+     * Crea una instància de la classe TeamLogic associada a un equip de robots.
+     * Inicialitza les variables internes necessàries, com ara el robot actual,
+     * enemics i obstacles detectats, i la jerarquia de l'equip.
+     * 
+     * @param r L'objecte RealStealTeam que representa l'equip de robots.
+     */
     public TeamLogic(RealStealTeam r){
         _r = r;
         _enemy = null;
@@ -48,10 +115,21 @@ public class TeamLogic {
         lastRoleChangeTime = 0;
     }
     
+    /**
+     * Estableix el temps de l'últim canvi de rol dins l'equip.
+     * 
+     * @param time El temps en mil·lisegons del darrer canvi de rol.
+     */
     public void setLastRoleChanged(long time){
         lastRoleChangeTime = time;
     }
     
+    /**
+     * Mou el robot cap a unes coordenades específiques, evitant obstacles si cal.
+     * 
+     * @param destinoX Coordenada X de la destinació.
+     * @param destinoY Coordenada Y de la destinació.
+     */
     public void moverACoordenadas(double destinoX, double destinoY) {
         
         // Posición actual del robot
@@ -85,14 +163,18 @@ public class TeamLogic {
             _r.setTurnRight(anguloRelativo);
         }
         
-        //System.out.println("anguloRelativo = " + anguloRelativo);    
-
         // Solo moverse hacia adelante si el giro se ha completado
         if (compareDoubles(anguloRelativo, 0.0)) {
             _r.setAhead(distancia);
         } 
     }
     
+    /**
+     * Mou el robot seguidor cap a unes coordenades, evitant obstacles i altres robots de l'equip.
+     * 
+     * @param destinoX Coordenada X de la destinació.
+     * @param destinoY Coordenada Y de la destinació.
+     */
     public void moverSeguidorACoordenadas(double destinoX, double destinoY) {
                 
         // Posición actual del robot
@@ -133,12 +215,21 @@ public class TeamLogic {
             _r.setAhead(distancia/2);
         }
     }
-        
+    
+    /**
+     * Ordena al TL disparar cap a l'enemic trobat.
+     */    
     public void dispara(){
         calcularEnemyPos();
         atacarEnemigo();
     }
 
+    /**
+     * Normalitza un angle perquè estigui dins del rang [-180, 180] graus.
+     * 
+     * @param angulo L'angle a normalitzar.
+     * @return L'angle normalitzat.
+     */
     public double normalizarAngulo(double angulo) {
         while (angulo > 180) {
             angulo -= 360;
@@ -149,6 +240,9 @@ public class TeamLogic {
         return angulo;
     }
     
+    /**
+     * Executa el cicle d'escaneig de l'entorn per detectar obstacles o enemics.
+     */
     public void escanejar(){
         // Escaneamos obstaculos:
         if(compareDoubles(_r.getHeading(),_r.getRadarHeading())){
@@ -171,17 +265,37 @@ public class TeamLogic {
         }
     }
     
-    //Comprar dos doubles sense errors de imprecisions.
+    /**
+     * Compara dos números de tipus double, tenint en compte una tolerància d'error.
+     * 
+     * @param num1 Primer número a comparar.
+     * @param num2 Segon número a comparar.
+     * @param epsilon El marge d'error permès.
+     * @return True si els números són iguals dins del marge d'error, false altrament.
+     */
     public boolean compareDoubles(double num1, double num2, double epsilon){
         //Comprar dos doubles sin errores de inprecision. 
         boolean result = Math.abs(num1-num2) < epsilon;
         return result;
     }
     
+    /**
+     * Compara dos números de tipus double, tenint en compte una tolerància d'error per defecte.
+     * 
+     * @param num1 Primer número a comparar.
+     * @param num2 Segon número a comparar.
+     * @return True si els números són iguals dins del marge d'error, false altrament.
+     */
     public boolean compareDoubles(double num1, double num2){
         return compareDoubles(num1, num2, 0.1);
     }
     
+    /**
+     * Estableix un obstacle detectat durant l'escaneig i, si no és un company d'equip, 
+     * el considera com a enemic.
+     * 
+     * @param e L'event de robot escanejat (ScannedRobotEvent).
+     */
     public void setObstacle(ScannedRobotEvent e){
         _obstacle = e;
         _contador = 2;
@@ -192,6 +306,11 @@ public class TeamLogic {
         }
     }
     
+    /**
+     * Determina si l'obstacle actual és un company d'equip.
+     * 
+     * @return True si l'obstacle és un company d'equip, false altrament.
+     */
     public boolean isTeammate(){
         boolean isTeammate = false;
         if(_obstacle!=null){
@@ -204,14 +323,28 @@ public class TeamLogic {
         return isTeammate;
     }
     
+    /**
+     * Obté la jerarquia actual dels membres de l'equip.
+     * 
+     * @return Un mapa que conté la jerarquia dels robots.
+     */
     public static Map<String, Integer> getJerarquia() {
         return jerarquia;
     }
 
+    
+    /**
+     * Estableix una nova jerarquia per a l'equip.
+     * 
+     * @param nuevaJerarquia El mapa que conté la nova jerarquia dels robots.
+     */
     public static void setJerarquia(Map<String, Integer> nuevaJerarquia) {
         jerarquia = nuevaJerarquia;
     }
     
+    /**
+     * Inverteix la jerarquia actual de l'equip si ha passat prou temps des de l'últim canvi de rol.
+     */
     public void invertirJerarquia() {
         if(lastRoleChangeTime==0){
             lastRoleChangeTime = System.currentTimeMillis();
@@ -254,6 +387,11 @@ public class TeamLogic {
         }
     }
 
+    /**
+     * Obté el següent líder de l'equip segons la jerarquia.
+     * 
+     * @return El nom del següent líder de l'equip.
+     */
     public static String getNextTeamLeader() {
         // Buscar el nivel del líder actual
         Integer currentLevel = jerarquia.get(getTeamLeader());
@@ -273,6 +411,11 @@ public class TeamLogic {
         return null; // Si no hay siguiente líder, retornar null
     }
     
+    /**
+     * Obté l'actual líder de l'equip.
+     * 
+     * @return El nom del líder de l'equip.
+     */
     public static String getTeamLeader() {
         // Si no existe, buscar el siguiente valor disponible
         for (int i = 1; i <= 5; i++) { // Cambiar el límite según la jerarquía
@@ -286,7 +429,12 @@ public class TeamLogic {
         return null; // Si no hay líderes, retornar null
     }
     
-    // Función para obtener el robot anterior en la jerarquía por su nombre
+    /**
+     * Retorna el nom del robot antecessor a <code>currentRobotName</code>, en cas de no 
+     * tenir retorna null
+     * 
+     * @param currentRobotName El nom del robot actual.
+     */
     public static String getPrevious(String currentRobotName) {
         Integer currentValue = jerarquia.get(currentRobotName); // Obtener el valor del robot actual
 
@@ -307,11 +455,18 @@ public class TeamLogic {
         return null; // Si no hay robot anterior activo, retornar null
     }
     
-    // Función para eliminar un robot de la jerarquía por su nombre
+    /**
+     * Elimina un robot de la jerarquia per nom.
+     * 
+     * @param robotName El nom del robot que s'ha d'eliminar.
+     */
     public static void removeRobotByName(String robotName) {
         jerarquia.remove(robotName); // Eliminar la entrada del HashMap por nombre
     }
     
+    /**
+     * Envia les coordenades actuals del robot als altres membres de l'equip.
+     */
     public void enviarCoordenades(){
         try {
             _r.broadcastMessage(new Messages.Position(_r.getName(), _r.getX(), _r.getY()));
@@ -320,26 +475,48 @@ public class TeamLogic {
         }
     }
     
-    // Establecer un nuevo enemigo consensuado
+    /**
+     * Estableix un nou enemic per a l'equip.
+     * 
+     * @param enemy L'enemic detectat (ScannedRobotEvent).
+     */
     public void setEnemy(ScannedRobotEvent enemy) {
         _enemy = enemy;
     }
 
-    // Obtener el nombre del enemigo actual
+     /**
+     * Obté l'enemic actual detectat per l'equip.
+     * 
+     * @return L'enemic actual (ScannedRobotEvent).
+     */
     public ScannedRobotEvent getCurrentEnemy() {
         return _enemy;
     }
 
-    // Verificar si hay un enemigo activo
+    /**
+     * Verifica si hi ha un enemic actiu.
+     * 
+     * @return True si hi ha un enemic actiu, false altrament.
+     */
     public boolean hasEnemy() {
         return _enemy != null;
     }
 
-    // Reiniciar enemigo si ha muerto
+    /**
+     * Reinicia l'enemic actual (estableix l'enemic a null).
+     */
     public void resetEnemy() {
         _enemy = null;
     }
     
+    /**
+    * Estableix els valors de posició i moviment de l'enemic.
+    * 
+    * @param x Coordenada X de l'enemic.
+    * @param y Coordenada Y de l'enemic.
+    * @param heading Direcció de l'enemic en graus.
+    * @param speed Velocitat de l'enemic.
+    */
     public void setEnemyValues(double x, double y, double heading, double speed){
         _enemyX = x;
         _enemyY = y;
@@ -347,22 +524,45 @@ public class TeamLogic {
         _enemyVelocity = speed;
     }
     
+    /**
+    * Retorna la coordenada X actual de l'enemic.
+    * 
+    * @return Coordenada X de l'enemic.
+    */
     public double getEnemyX(){
         return _enemyX;
     }
     
+    /**
+    * Retorna la coordenada Y actual de l'enemic.
+    * 
+    * @return Coordenada Y de l'enemic.
+    */
     public double getEnemyY(){
         return _enemyY;
     }
     
+    /**
+    * Retorna la direcció (en graus) de l'enemic.
+    * 
+    * @return Direcció de l'enemic en graus.
+    */
     public double getEnemyHeading(){
         return _enemyHeading;
     }
     
+    /**
+    * Retorna la velocitat actual de l'enemic.
+    * 
+    * @return Velocitat de l'enemic.
+    */
     public double getEnemyVelocity(){
         return _enemyVelocity;
     }
     
+    /**
+    * Calcula la posició actual de l'enemic basant-se en les dades obtingudes de l'escaneig.
+    */
     public void calcularEnemyPos(){
         if(_enemy!=null){
             // Calcular la posición actual del enemigo
@@ -374,6 +574,9 @@ public class TeamLogic {
         }
     }
     
+    /**
+     * Ataca l'enemic calculant la seva posició futura i ajustant el canó del robot.
+     */
     public void atacarEnemigo() {
         if(_enemy!=null){            
             double futureX = _enemyX + Math.sin(Math.toRadians(_enemyHeading)) * _enemyVelocity * 20;
@@ -395,28 +598,60 @@ public class TeamLogic {
         }
     }
     
+    /**
+     * Reajusta el canó del robot perquè apunti a la seva orientació original.
+     */
     public void resetGun(){
         _r.setTurnGunRight(_r.getHeading()-_r.getGunHeading());
     }
     
+    /**
+     * Reajusta el radar del robot perquè coincideixi amb la seva orientació original.
+     */
     public void resetRadar(){
         _r.setTurnRadarRight(_r.getHeading()-_r.getRadarHeading());
     }
     
-    // Método auxiliar para calcular el ángulo entre dos puntos (igual que antes)
+    /**
+     * Calcula l'angle entre dos punts de coordenades.
+     * 
+     * @param x1 Coordenada X del primer punt.
+     * @param y1 Coordenada Y del primer punt.
+     * @param x2 Coordenada X del segon punt.
+     * @param y2 Coordenada Y del segon punt.
+     * @return L'angle entre els dos punts.
+     */
     private double calcularAngulo(double x1, double y1, double x2, double y2) {
         return Math.toDegrees(Math.atan2(x2 - x1, y2 - y1));
     }
     
-    // Mètode per calcular la distància entre dos punts
+    /**
+     * Calcula la distància entre dos punts de coordenades.
+     * 
+     * @param x1 Coordenada X del primer punt.
+     * @param y1 Coordenada Y del primer punt.
+     * @param x2 Coordenada X del segon punt.
+     * @param y2 Coordenada Y del segon punt.
+     * @return La distància entre els dos punts.
+     */
     public double distancia(double x1, double y1, double x2, double y2) {
         return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     }
     
+    /**
+     * Verifica si s'ha realitzat un canvi de rols dins l'equip.
+     * 
+     * @return True si hi ha hagut un canvi de rols, false altrament.
+     */
     public boolean getCambioRoles(){
         return _cambioRoles;
     }
     
+     /**
+     * Estableix l'estat del canvi de rols.
+     * 
+     * @param nouEstat El nou estat del canvi de rols.
+     */
     public void setCambioRoles(boolean nouEstat){
         _cambioRoles = nouEstat;
     }
