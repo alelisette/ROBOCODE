@@ -52,21 +52,25 @@ public class EstatSeguidor extends Estat {
     void onScannedRobot(ScannedRobotEvent e) {
         _r._logic.setObstacle(e);
         if(!_r._logic.isTeammate() && !_r._logic.hasEnemy()){
+            _r._logic.setEnemy(e);
+            _r._logic.calcularEnemyPos();
             try {
                 _r.broadcastMessage(new Messages.EnemyInfoMessage(e));
+                _r.broadcastMessage(new Messages.EnemyPositionMessage(_r._logic.getEnemyX(), _r._logic.getEnemyY(),
+                        e.getHeading(), e.getVelocity()));
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
-            _r._logic.setEnemy(e);
-            _r._logic.calcularEnemyPos();
         } else if(_r._logic.hasEnemy() && e.getName().equals(_r._logic.getCurrentEnemy().getName())){
+            _r._logic.setEnemy(e);
+            _r._logic.calcularEnemyPos();
             try {
                 _r.broadcastMessage(new Messages.EnemyInfoMessage(e));
+                _r.broadcastMessage(new Messages.EnemyPositionMessage(_r._logic.getEnemyX(), _r._logic.getEnemyY(),
+                        e.getHeading(), e.getVelocity()));
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
-            _r._logic.setEnemy(e);
-            _r._logic.calcularEnemyPos();
         }
     }
 
@@ -91,6 +95,13 @@ public class EstatSeguidor extends Estat {
             // Actualizar la información del enemigo con los datos recibidos
             _r._logic.setEnemyValues(posMsg.getX(), posMsg.getY(), 
                     posMsg.getHeading(), posMsg.getVelocity());        
+        } else if(e.getMessage() instanceof Messages.ChangeState){
+            if(TeamLogic.getTeamLeader().equals(_r.getName())){
+                _r.setEstat(new EstatTL(_r));
+            } else {
+                nameFollow = TeamLogic.getPrevious(_r.getName());
+                tlName = TeamLogic.getTeamLeader();
+            }
         }
     }
 
@@ -112,7 +123,7 @@ public class EstatSeguidor extends Estat {
             } else {
                 System.out.println("El nuevo TL es: " + tlName);
             }
-        } else if(event.getName().equals(_r._logic.getCurrentEnemy())) {
+        } else if(event.getName().equals(_r._logic.getCurrentEnemy().getName())) {
             _r._logic.resetEnemy();
             _r._logic.resetGun();
         }

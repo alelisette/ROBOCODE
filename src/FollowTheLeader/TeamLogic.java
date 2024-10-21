@@ -4,8 +4,11 @@
  */
 package FollowTheLeader;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import robocode.ScannedRobotEvent;
 
@@ -26,6 +29,9 @@ public class TeamLogic {
     private boolean _scanDerecha;
     private boolean _scanCentro;
     private int _contador = 0;
+    private boolean _cambioRoles;
+    private long lastRoleChangeTime; // Guardará el valor del último turno en que se cambió el rol
+
    
     public TeamLogic(RealStealTeam r){
         _r = r;
@@ -38,6 +44,12 @@ public class TeamLogic {
         _scanDerecha = false;
         _scanCentro = false;
         _contador = 0;
+        _cambioRoles = false;
+        lastRoleChangeTime = 0; // Guardar el turno en que inicia
+    }
+    
+    public void setLastRoleChanged(long time){
+        lastRoleChangeTime = time;
     }
     
     public void moverACoordenadas(double destinoX, double destinoY) {
@@ -107,7 +119,7 @@ public class TeamLogic {
             double esquivaAngulo = -_obstacle.getBearing();
             _r.setTurnRight(esquivaAngulo);
             _contador -= 1;
-            _r.setAhead(30);
+            _r.setAhead(50);
             
         } else {  // Si no hay enemigos cerca o fuera del rango de esquiva
             // Girar hacia el punto de destino
@@ -214,6 +226,39 @@ public class TeamLogic {
     public static void setJerarquia(Map<String, Integer> nuevaJerarquia) {
         jerarquia = nuevaJerarquia;
     }
+    
+    public void invertirJerarquia() {
+        if (lastRoleChangeTime - _r.getTime() >= 15) { // Cada 15 segundos
+            _cambioRoles = !_cambioRoles;
+            lastRoleChangeTime = System.currentTimeMillis();
+
+            // Crear una lista de los robots en orden jerárquico
+            List<Map.Entry<String, Integer>> listaJerarquia = new ArrayList<>(jerarquia.entrySet());
+
+            // Ordenar la lista por el valor de la jerarquía (posición en el equipo)
+            listaJerarquia.sort(Map.Entry.comparingByValue());
+
+            // Invertir la lista de jerarquía
+            Collections.reverse(listaJerarquia);
+
+            // Asignar los nuevos valores de jerarquía
+            for (int i = 0; i < listaJerarquia.size(); i++) {
+                System.out.println("Posicion " + i + ": " + listaJerarquia.get(i).getKey());
+                jerarquia.put(listaJerarquia.get(i).getKey(), i + 1);
+            }
+
+            // Notificar a los demás robots de la nueva jerarquía
+            try {
+                TeamLogic.setJerarquia(jerarquia); // Guardamos la jerarquía globalmente
+                // Enviamos un mensaje a todos para cambiar de estado
+                _r.broadcastMessage(new Messages.ChangeState());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+            //System.out.println("Nueva jerarquía: " + jerarquia);
+        }
+    }
 
     public static String getNextTeamLeader() {
         // Buscar el nivel del líder actual
@@ -308,6 +353,22 @@ public class TeamLogic {
         _enemyVelocity = speed;
     }
     
+    public double getEnemyX(){
+        return _enemyX;
+    }
+    
+    public double getEnemyY(){
+        return _enemyY;
+    }
+    
+    public double getEnemyHeading(){
+        return _enemyHeading;
+    }
+    
+    public double getEnemyVelocity(){
+        return _enemyVelocity;
+    }
+    
     public void calcularEnemyPos(){
         if(_enemy!=null){
             // Calcular la posición actual del enemigo
@@ -356,5 +417,13 @@ public class TeamLogic {
     public double distancia(double x1, double y1, double x2, double y2) {
         return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     }
-
+    
+    public boolean getCambioRoles(){
+        return _cambioRoles;
+    }
+    
+    public void setCambioRoles(boolean nouEstat){
+        _cambioRoles = nouEstat;
+    }
+    
 }

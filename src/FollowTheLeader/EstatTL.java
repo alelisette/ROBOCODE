@@ -28,6 +28,7 @@ public class EstatTL extends Estat{
         _r.setScanColor(Color.RED);
         _r.setBulletColor(Color.GREEN);  
         inicializarEsquinas();
+        _r._logic.setLastRoleChanged(_r.getTime());
         proximaEsquina = calcularEsquinaMasCercana();
     }
 
@@ -37,13 +38,21 @@ public class EstatTL extends Estat{
         double alto = _r.getBattleFieldHeight();
         double margenX = ancho * margen;
         double margenY = alto * margen;
-
-        esquinas = new Point2D.Double[]{
-            new Point2D.Double(margenX, margenY),                   // Esquina inferior izquierda
-            new Point2D.Double(margenX, alto - margenY),              // Esquina superior izquierda
-            new Point2D.Double(ancho - margenX, alto - margenY),        // Esquina superior derecha 
-            new Point2D.Double(ancho - margenX, margenY)              // Esquina inferior derecha  
-        };
+        if(!_r._logic.getCambioRoles()){
+            esquinas = new Point2D.Double[]{
+                new Point2D.Double(margenX, margenY),                   // Esquina inferior izquierda
+                new Point2D.Double(margenX, alto - margenY),              // Esquina superior izquierda
+                new Point2D.Double(ancho - margenX, alto - margenY),        // Esquina superior derecha 
+                new Point2D.Double(ancho - margenX, margenY)              // Esquina inferior derecha  
+            };
+        } else {
+            esquinas = new Point2D.Double[]{
+                new Point2D.Double(margenX, margenY),                   // Esquina inferior izquierda
+                new Point2D.Double(ancho - margenX, margenY),              // Esquina inferior derecha
+                new Point2D.Double(ancho - margenX, alto - margenY),        // Esquina superior derecha 
+                new Point2D.Double(margenX, alto - margenY)              // Esquina superior izquierda              
+            };
+        }
     }
     
     // Calcular la esquina más cercana al TL al inicio
@@ -66,6 +75,7 @@ public class EstatTL extends Estat{
     
     @Override
     void torn() {
+        _r._logic.invertirJerarquia();
         Point2D.Double destino = esquinas[proximaEsquina];
         double distancia = _r.getX() - destino.x + _r.getY() - destino.y; 
         // Si estamos cerca de la esquina actual, pasar a la siguiente
@@ -91,6 +101,10 @@ public class EstatTL extends Estat{
         if (e.getMessage() instanceof Messages.TeamLeader msg) {
             System.out.println("He recibido un nuevo TL: " + msg.getTlName());
             _r.setEstat(new EstatSeguidor((RealStealTeam) _r));  // Cambiar al estado de seguidor
+        } else if(e.getMessage() instanceof Messages.ChangeState){
+            if(!TeamLogic.getTeamLeader().equals(_r.getName())){
+                _r.setEstat(new EstatSeguidor(_r));
+            } 
         }
     }
 
@@ -125,7 +139,7 @@ public class EstatTL extends Estat{
     
     @Override
     void onHitRobot(HitRobotEvent event) {
-        _r.setBack(10);
+        _r.setBack(20);
     }
     
 }
