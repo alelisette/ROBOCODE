@@ -150,13 +150,13 @@ public class TeamLogic {
             
             if (_obstacle.getDistance() < 120) {
                 _r.setBack(50);  // Retroceder si el enemigo está demasiado cerca
+            } else {
+                _r.setAhead(30);
             } 
-
             // Girar para esquivar al enemigo, ajustando según el ángulo de detección
             double esquivaAngulo = -_obstacle.getBearing();
             _r.setTurnRight(esquivaAngulo);
             _contador -= 1;
-            _r.setAhead(30);
             
         } else {  // Si no hay enemigos cerca o fuera del rango de esquiva
             // Girar hacia el punto de destino
@@ -195,14 +195,15 @@ public class TeamLogic {
             
             if (_obstacle.getDistance() < 120) {
                 _r.setBack(100);  // Retroceder si el enemigo está demasiado cerca
-            } 
+            } else {
+                _r.setAhead(50);
+
+            }
 
             // Girar para esquivar al enemigo, ajustando según el ángulo de detección
             double esquivaAngulo = -_obstacle.getBearing();
             _r.setTurnRight(esquivaAngulo);
-            _contador -= 1;
-            _r.setAhead(50);
-            
+            _contador -= 1;            
         } else {  // Si no hay enemigos cerca o fuera del rango de esquiva
             // Girar hacia el punto de destino
             _r.setTurnRight(anguloRelativo);
@@ -645,6 +646,10 @@ public class TeamLogic {
      */
     public boolean getCambioRoles(){
         return _cambioRoles;
+    }
+    
+    public void switchCambioRoles(){
+        _cambioRoles = !_cambioRoles;
     }
     
      /**

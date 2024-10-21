@@ -151,6 +151,7 @@ public class EstatSeguidor extends Estat {
                     posMsg.getHeading(), posMsg.getVelocity());        
         } else if (e.getMessage() instanceof Messages.Hierarchy hierarchyMsg) {
             TeamLogic.setJerarquia(hierarchyMsg.getHierarchy()); // Guardar la jerarquia
+            _r._logic.switchCambioRoles();
             // Comprovar si aquest robot és el nou TL
             if(TeamLogic.getTeamLeader().equals(_r.getName())){
                 _r._logic.setLastRoleChanged(0);
@@ -158,7 +159,7 @@ public class EstatSeguidor extends Estat {
             } else {
                 nameFollow = TeamLogic.getPrevious(_r.getName());
                 tlName = TeamLogic.getTeamLeader();
-            }    
+            }
         } else if (e.getMessage() instanceof Messages.ActualTime timemsg) {
             _r._logic.setLastRoleChanged(timemsg.getTime());
         }
@@ -204,7 +205,7 @@ public class EstatSeguidor extends Estat {
      */
     @Override
     void onHitRobot(HitRobotEvent event) {
-        _r.setBack(10);
+        _r.setBack(20);
     }
 
     /**
