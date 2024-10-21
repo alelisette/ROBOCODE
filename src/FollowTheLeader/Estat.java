@@ -22,5 +22,6 @@ public abstract class Estat  {
     abstract void onScannedRobot(ScannedRobotEvent e);
     abstract void onMessageReceived(MessageEvent e);
     abstract void onRobotDeath(RobotDeathEvent event);
+    abstract void onHitRobot(HitRobotEvent event);
     abstract void onPaint(Graphics2D g);
 }

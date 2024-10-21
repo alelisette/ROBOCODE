@@ -1,8 +1,6 @@
 package FollowTheLeader;
 
-import java.awt.Color;
 import java.awt.Graphics2D;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,23 +31,16 @@ public class HandShake extends Estat {
                 tlName = _r.getName();
                 // Enviamos un mensaje a todos diciendo que este robot es el TL
                 try {
-                    _r.broadcastMessage(new TeamLeaderMessage(_r.getName()));
+                    _r.broadcastMessage(new Messages.TeamLeader(_r.getName()));
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
-                // Cambiamos el color:
-                _r.setBodyColor(Color.BLACK);
-                _r.setGunColor(Color.RED);
-                _r.setRadarColor(Color.RED);
-                _r.setScanColor(Color.RED);
-                _r.setBulletColor(Color.GREEN);
             }
         } else {
             // Si ya hay un TL, enviamos nuestra posición al TL
             try {
                 if(!isTL){
-                    System.out.println("Mi posicion es: x = " + _r.getX() + " y = " + _r.getY());
-                    _r.broadcastMessage(new PositionMessage(_r.getName(), _r.getX(), _r.getY()));
+                    _r._logic.enviarCoordenades();
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -64,10 +55,10 @@ public class HandShake extends Estat {
 
     @Override
     void onMessageReceived(MessageEvent e) {
-        if (e.getMessage() instanceof TeamLeaderMessage msg) {
+        if (e.getMessage() instanceof Messages.TeamLeader msg) {
             this.tlName = msg.getTlName(); // Recibimos el nombre del TL
             System.out.println("TL: Elejido" + tlName);
-        } else if (e.getMessage() instanceof PositionMessage posMsg) {
+        } else if (e.getMessage() instanceof Messages.Position posMsg) {
             if (isTL) {
                 // Si soy el TL, calculo la distancia entre cada robot
                 double dist = calcularDistancia(_r.getX(), _r.getY(), posMsg.getX(), posMsg.getY());
@@ -80,17 +71,22 @@ public class HandShake extends Estat {
                     enviarJerarquia();
                 }
             }
-        } else if (e.getMessage() instanceof HierarchyMessage hierarchyMsg) {
+        } else if (e.getMessage() instanceof Messages.Hierarchy hierarchyMsg) {
             this.hierarchy = hierarchyMsg.getHierarchy(); // Guardamos la jerarquía
+            TeamLogic.setJerarquia(hierarchy); // Guardamos la jerarquía globalmente
+            // Comprobar si este robot es el nuevo TL
+            if (_r.getName().equals(tlName)) {
+                isTL = true;          
+            }
             
             // Enviamos confirmación de que hemos recibido la jerarquía
             try {
-                _r.sendMessage(tlName, new ConfirmationMessage(_r.getName()));
+                _r.sendMessage(tlName, new Messages.Confirmation(_r.getName()));
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
             
-        } else if (e.getMessage() instanceof ConfirmationMessage) {
+        } else if (e.getMessage() instanceof Messages.Confirmation) {
             // El TL recibe confirmaciones de los robots
             if (isTL) {
                 confirmationsReceived++;
@@ -99,7 +95,7 @@ public class HandShake extends Estat {
                     cambiarEstadoParaTodos();
                 }
             }
-        } else if (e.getMessage() instanceof ChangeStateMessage) {
+        } else if (e.getMessage() instanceof Messages.ChangeState) {
             // Cuando un seguidor recibe este mensaje, también cambia de estado
             cambiarEstadoParaTodos(); // Ejecutar el cambio de estado también para seguidores
         }
@@ -109,7 +105,25 @@ public class HandShake extends Estat {
     void onRobotDeath(RobotDeathEvent event) {
         if (event.getName().equals(tlName)) {
             System.out.println("El Team Leader ha muerto. Reorganizando jerarquía...");
-            // Implementar la lógica para reorganizar si el TL muere
+
+            // Obtener el siguiente en la jerarquía
+            String nuevoTL = TeamLogic.getNextTeamLeader();
+
+            if (nuevoTL != null) {
+                // Asignar al nuevo TL
+                tlName = nuevoTL;
+                isTL = _r.getName().equals(tlName);
+
+                if (isTL) {
+                    // Este robot se convierte en el nuevo TL
+                    System.out.println("Soy el nuevo TL: " + tlName);
+                    // Reorganizamos la jerarquía para que este robot sea el líder
+                    hierarchy.put(tlName, 1); // El nuevo TL es el primero en la jerarquía
+                    enviarJerarquia(); // Volvemos a enviar la jerarquía actualizada a todos
+                } else {
+                    System.out.println("El nuevo TL es: " + tlName);
+                }
+            }
         }
     }
 
@@ -141,7 +155,7 @@ public class HandShake extends Estat {
     // Método para enviar la jerarquía a todos los robots
     private void enviarJerarquia() {
         try {
-            _r.broadcastMessage(new HierarchyMessage(hierarchy));
+            _r.broadcastMessage(new Messages.Hierarchy(hierarchy));
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -150,8 +164,9 @@ public class HandShake extends Estat {
     // Método para cambiar de estado una vez completada la jerarquía
     private void cambiarEstadoParaTodos() {
         try {
+            TeamLogic.setJerarquia(hierarchy); // Guardamos la jerarquía globalmente
             // Enviamos un mensaje a todos para cambiar de estado
-            _r.broadcastMessage(new ChangeStateMessage());
+            _r.broadcastMessage(new Messages.ChangeState());
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -163,72 +178,9 @@ public class HandShake extends Estat {
             _r.setEstat(new EstatSeguidor((RealStealTeam) _r));
         }
     }
-    
-    // Clase para el mensaje de confirmación
-    public static class ConfirmationMessage implements Serializable {
-        private String sender;
 
-        public ConfirmationMessage(String sender) {
-            this.sender = sender;
-        }
-
-        public String getSender() {
-            return sender;
-        }
-    }
-    
-    // Clase para el mensaje de cambio de estado
-    public static class ChangeStateMessage implements Serializable {
-        // Simplemente indica que todos deben cambiar de estado
-    }
-
-    // Clase para el mensaje de Team Leader
-    public static class TeamLeaderMessage implements Serializable {
-        private String tlName;
-
-        public TeamLeaderMessage(String tlName) {
-            this.tlName = tlName;
-        }
-
-        public String getTlName() {
-            return tlName;
-        }
-    }
-
-    // Clase para el mensaje de posiciones
-    public static class PositionMessage implements Serializable {
-        private String sender;
-        private double x, y;
-
-        public PositionMessage(String sender, double x, double y) {
-            this.sender = sender;
-            this.x = x;
-            this.y = y;
-        }
-
-        public String getSender() {
-            return sender;
-        }
-
-        public double getX() {
-            return x;
-        }
-
-        public double getY() {
-            return y;
-        }
-    }
-
-    // Clase para el mensaje de jerarquía
-    public static class HierarchyMessage implements Serializable {
-        private Map<String, Integer> hierarchy;
-
-        public HierarchyMessage(Map<String, Integer> hierarchy) {
-            this.hierarchy = hierarchy;
-        }
-
-        public Map<String, Integer> getHierarchy() {
-            return hierarchy;
-        }
+    @Override
+    void onHitRobot(HitRobotEvent event) {
+        _r.setBack(10);
     }
 }

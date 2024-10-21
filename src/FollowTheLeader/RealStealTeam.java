@@ -44,6 +44,11 @@ public class RealStealTeam extends TeamRobot {
         _estat.onRobotDeath(event);
     }
     
+    @Override
+    public void onHitRobot(HitRobotEvent event){
+        _estat.onHitRobot(event);
+    }
+    
     public void setEstat(Estat nouEstat){
         _estat = nouEstat;
     }

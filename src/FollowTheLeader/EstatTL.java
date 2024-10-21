@@ -21,6 +21,12 @@ public class EstatTL extends Estat{
     
     public EstatTL(RealStealTeam r) {
         super(r);
+        // Cambiamos el color:
+        _r.setBodyColor(Color.BLACK);
+        _r.setGunColor(Color.RED);
+        _r.setRadarColor(Color.RED);
+        _r.setScanColor(Color.RED);
+        _r.setBulletColor(Color.GREEN);  
         inicializarEsquinas();
         proximaEsquina = calcularEsquinaMasCercana();
     }
@@ -71,6 +77,7 @@ public class EstatTL extends Estat{
             _r._logic.moverACoordenadas(destino.x, destino.y);
             _r._logic.escanejar();
         }
+         _r._logic.enviarCoordenades();
     }
 
     @Override
@@ -80,12 +87,32 @@ public class EstatTL extends Estat{
 
     @Override
     void onMessageReceived(MessageEvent e) {
-        //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        // Si recibe un mensaje de cambio de TL, debe actuar en consecuencia
+        if (e.getMessage() instanceof Messages.TeamLeader msg) {
+            System.out.println("He recibido un nuevo TL: " + msg.getTlName());
+            _r.setEstat(new EstatSeguidor((RealStealTeam) _r));  // Cambiar al estado de seguidor
+        }
     }
 
     @Override
     void onRobotDeath(RobotDeathEvent event) {
-        //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        // Si el TL actual muere, asignamos el siguiente TL
+        if (event.getName().equals(_r.getName())) {
+            System.out.println("El TL ha muerto.");
+            
+            // Obtener el siguiente en la jerarquía
+            String nuevoTL = TeamLogic.getNextTeamLeader();
+
+            if (nuevoTL != null && nuevoTL.equals(_r.getName())) {
+                // Este robot se convierte en el nuevo TL
+                _r.setEstat(new EstatTL((RealStealTeam) _r));  // Cambiar al estado de TL
+                System.out.println("Soy el nuevo TL: " + nuevoTL);
+            } else {
+                System.out.println("El nuevo TL es otro: " + nuevoTL);
+                _r.setEstat(new EstatSeguidor((RealStealTeam) _r));  // Cambiar al estado de seguidor
+            }
+        }
+        TeamLogic.removeRobotByName(event.getName());
     }
 
     @Override
@@ -94,6 +121,11 @@ public class EstatTL extends Estat{
         int r = 30;
         g.setColor(Color.RED);    
         g.drawOval((int) _r.getX() - r, (int) _r.getY() - r, 2*r, 2*r);
+    }
+    
+    @Override
+    void onHitRobot(HitRobotEvent event) {
+        _r.setBack(10);
     }
     
 }
