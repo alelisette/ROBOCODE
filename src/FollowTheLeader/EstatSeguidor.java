@@ -37,9 +37,10 @@ public class EstatSeguidor extends Estat {
     @Override
     void torn() {
         _r._logic.enviarCoordenades();
-        if(TeamLogic.hasEnemy()){
+        if(_r._logic.hasEnemy()){
             _r._logic.atacarEnemigo();
         } else {
+            _r._logic.resetGun();
             _r._logic.escanejar();
         }
         if(puntX!=0.0){
@@ -49,16 +50,22 @@ public class EstatSeguidor extends Estat {
 
     @Override
     void onScannedRobot(ScannedRobotEvent e) {
-        _r._logic.setEnemy(e);
-        if(!_r._logic.isTeammate() && !TeamLogic.hasEnemy()){
+        _r._logic.setObstacle(e);
+        if(!_r._logic.isTeammate() && !_r._logic.hasEnemy()){
             try {
-                _r.broadcastMessage(new Messages.EnemyInfoMessage(e.getName()));
+                _r.broadcastMessage(new Messages.EnemyInfoMessage(e));
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
-            TeamLogic.setEnemy(e.getName());
+            _r._logic.setEnemy(e);
             _r._logic.calcularEnemyPos();
-        } else if(e.getName().equals(TeamLogic.getCurrentEnemy())){
+        } else if(_r._logic.hasEnemy() && e.getName().equals(_r._logic.getCurrentEnemy().getName())){
+            try {
+                _r.broadcastMessage(new Messages.EnemyInfoMessage(e));
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+            _r._logic.setEnemy(e);
             _r._logic.calcularEnemyPos();
         }
     }
@@ -78,8 +85,12 @@ public class EstatSeguidor extends Estat {
                 puntY = posMsg.getY();
             }
         } else if(e.getMessage() instanceof Messages.EnemyInfoMessage enemyMsg){
-            TeamLogic.setEnemy(enemyMsg.getEnemyName());
+            _r._logic.setEnemy(enemyMsg.getEnemy());
             _r._logic.calcularEnemyPos();
+        } else if(e.getMessage() instanceof Messages.EnemyPositionMessage posMsg){
+            // Actualizar la información del enemigo con los datos recibidos
+            _r._logic.setEnemyValues(posMsg.getX(), posMsg.getY(), 
+                    posMsg.getHeading(), posMsg.getVelocity());        
         }
     }
 
@@ -101,8 +112,8 @@ public class EstatSeguidor extends Estat {
             } else {
                 System.out.println("El nuevo TL es: " + tlName);
             }
-        } else if(event.getName().equals(TeamLogic.getCurrentEnemy())) {
-            TeamLogic.resetEnemy();
+        } else if(event.getName().equals(_r._logic.getCurrentEnemy())) {
+            _r._logic.resetEnemy();
             _r._logic.resetGun();
         }
         TeamLogic.removeRobotByName(event.getName());

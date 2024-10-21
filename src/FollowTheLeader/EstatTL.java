@@ -82,7 +82,7 @@ public class EstatTL extends Estat{
 
     @Override
     void onScannedRobot(ScannedRobotEvent e) {
-        _r._logic.setEnemy(e);
+        _r._logic.setObstacle(e);
     }
 
     @Override

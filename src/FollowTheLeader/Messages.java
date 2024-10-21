@@ -6,6 +6,7 @@ package FollowTheLeader;
 
 import java.io.Serializable;
 import java.util.Map;
+import robocode.ScannedRobotEvent;
 
 /**
  *
@@ -81,15 +82,48 @@ public class Messages {
     }
     
     // Mensaje para compartir el enemigo consensuado
-    public class EnemyInfoMessage implements Serializable {
-        private String enemyName;
+    public static class EnemyInfoMessage implements Serializable {
+        ScannedRobotEvent enemy;
 
-        public EnemyInfoMessage(String enemyName) {
-            this.enemyName = enemyName;
+        public EnemyInfoMessage(ScannedRobotEvent e) {
+            this.enemy = e;
         }
 
         public String getEnemyName() {
-            return enemyName;
+            return enemy.getName();
+        }
+        
+        public ScannedRobotEvent getEnemy() {
+            return enemy;
+        }
+        
+    }
+    
+    public static class EnemyPositionMessage implements Serializable {
+        private double x, y, heading, velocity;
+
+        public EnemyPositionMessage(double x, double y, double heading, double velocity) {
+            this.x = x;
+            this.y = y;
+            this.heading = heading;
+            this.velocity = velocity;
+        }
+
+        public double getX() {
+            return x;
+        }
+
+        public double getY() {
+            return y;
+        }
+
+        public double getHeading() {
+            return heading;
+        }
+
+        public double getVelocity() {
+            return velocity;
         }
     }
+
 }

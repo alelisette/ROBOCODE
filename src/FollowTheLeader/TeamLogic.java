@@ -15,10 +15,12 @@ import robocode.ScannedRobotEvent;
  */
 public class TeamLogic {
     private final RealStealTeam _r;
-    private ScannedRobotEvent _e;
-    private static String _enemy;
-    private static double _enemyX;
-    private static double _enemyY;
+    private ScannedRobotEvent _obstacle;
+    private ScannedRobotEvent _enemy;
+    private double _enemyX;
+    private double _enemyY;
+    private double _enemyHeading;
+    private double _enemyVelocity;
     private static Map<String, Integer> jerarquia = new HashMap<>(); // Jerarquía global
     private boolean _scanIzquierda;
     private boolean _scanDerecha;
@@ -30,6 +32,8 @@ public class TeamLogic {
         _enemy = null;
         _enemyX = 0.0;
         _enemyY = 0.0;
+        _enemyHeading = 0.0;
+        _enemyVelocity = 0.0;
         _scanIzquierda = true;
         _scanDerecha = false;
         _scanCentro = false;
@@ -52,14 +56,14 @@ public class TeamLogic {
         double anguloRelativo = normalizarAngulo(anguloDestino - _r.getHeading());
 
         // Lógica de esquiva de enemigos u obstáculos
-        if (_e != null && _e.getDistance() < 250.0 && _contador!=0) {  // Si hay un enemigo cerca
+        if (_obstacle != null && _obstacle.getDistance() < 250.0 && _contador!=0) {  // Si hay un enemigo cerca
             
-            if (_e.getDistance() < 120) {
+            if (_obstacle.getDistance() < 120) {
                 _r.setBack(50);  // Retroceder si el enemigo está demasiado cerca
             } 
 
             // Girar para esquivar al enemigo, ajustando según el ángulo de detección
-            double esquivaAngulo = -_e.getBearing();
+            double esquivaAngulo = -_obstacle.getBearing();
             _r.setTurnRight(esquivaAngulo);
             _contador -= 1;
             _r.setAhead(30);
@@ -93,14 +97,14 @@ public class TeamLogic {
         double anguloRelativo = normalizarAngulo(anguloDestino - _r.getHeading());
 
         // Lógica de esquiva de enemigos u obstáculos
-        if (_e != null && _e.getDistance() < 250.0 && _contador!=0 && !isTeammate()) {  // Si hay un enemigo cerca
+        if (_obstacle != null && _obstacle.getDistance() < 250.0 && _contador!=0 && !isTeammate()) {  // Si hay un enemigo cerca
             
-            if (_e.getDistance() < 120) {
+            if (_obstacle.getDistance() < 120) {
                 _r.setBack(100);  // Retroceder si el enemigo está demasiado cerca
             } 
 
             // Girar para esquivar al enemigo, ajustando según el ángulo de detección
-            double esquivaAngulo = -_e.getBearing();
+            double esquivaAngulo = -_obstacle.getBearing();
             _r.setTurnRight(esquivaAngulo);
             _contador -= 1;
             _r.setAhead(30);
@@ -110,8 +114,8 @@ public class TeamLogic {
             _r.setTurnRight(anguloRelativo);
         }
         
-        if(isTeammate() && _e.getDistance() < 60){
-            _r.setTurnRight(-_e.getBearing());
+        if(isTeammate() && _obstacle.getDistance() < 60){
+            _r.setTurnRight(-_obstacle.getBearing());
             _r.setBack(20);
         } else if(distancia > 120){
             _r.setAhead(distancia/2);
@@ -182,8 +186,8 @@ public class TeamLogic {
         return compareDoubles(num1, num2, 0.1);
     }
     
-    public void setEnemy(ScannedRobotEvent e){
-        _e = e;
+    public void setObstacle(ScannedRobotEvent e){
+        _obstacle = e;
         _contador = 2;
         
         if(!isTeammate()){
@@ -193,13 +197,13 @@ public class TeamLogic {
     
     public boolean isTeammate(){
         boolean isTeammate = false;
-        if(_e!=null){
+        if(_obstacle!=null){
             for (String teammate : _r.getTeammates()) {
-                if (teammate.equals(_e.getName())) {
+                if (teammate.equals(_obstacle.getName())) {
                     isTeammate = true;
                 }
             }
-        }
+        } 
         return isTeammate;
     }
     
@@ -278,48 +282,62 @@ public class TeamLogic {
     }
     
     // Establecer un nuevo enemigo consensuado
-    public static void setEnemy(String enemyName) {
-        _enemy = enemyName;
+    public void setEnemy(ScannedRobotEvent enemy) {
+        _enemy = enemy;
     }
 
     // Obtener el nombre del enemigo actual
-    public static String getCurrentEnemy() {
+    public ScannedRobotEvent getCurrentEnemy() {
         return _enemy;
     }
 
     // Verificar si hay un enemigo activo
-    public static boolean hasEnemy() {
+    public boolean hasEnemy() {
         return _enemy != null;
     }
 
     // Reiniciar enemigo si ha muerto
-    public static void resetEnemy() {
+    public void resetEnemy() {
         _enemy = null;
     }
     
+    public void setEnemyValues(double x, double y, double heading, double speed){
+        _enemyX = x;
+        _enemyY = y;
+        _enemyHeading = heading;
+        _enemyVelocity = speed;
+    }
+    
     public void calcularEnemyPos(){
-        // Calcular la posición actual del enemigo
-        double angleToEnemy = _r.getHeading() + _e.getBearing();  // Ángulo absoluto
-        _enemyX = _r.getX() + Math.sin(Math.toRadians(angleToEnemy)) * _e.getDistance();
-        _enemyY = _r.getY() + Math.cos(Math.toRadians(angleToEnemy)) * _e.getDistance();
+        if(_enemy!=null){
+            // Calcular la posición actual del enemigo
+            double angleToEnemy = _r.getHeading() + _enemy.getBearing();  // Ángulo absoluto
+            _enemyX = _r.getX() + Math.sin(Math.toRadians(angleToEnemy)) * _enemy.getDistance();
+            _enemyY = _r.getY() + Math.cos(Math.toRadians(angleToEnemy)) * _enemy.getDistance();
+            _enemyHeading = _enemy.getHeading();
+            _enemyVelocity = _enemy.getVelocity();
+        }
     }
     
     public void atacarEnemigo() {
-        // Ahora podemos predecir la posición futura basándonos en su velocidad y dirección
-        double futureX = _enemyX + Math.sin(Math.toRadians(_e.getHeading())) * _e.getVelocity() * 20;
-        double futureY = _enemyY + Math.cos(Math.toRadians(_e.getHeading())) * _e.getVelocity() * 20;
+        if(_enemy!=null){
+            System.out.println("Posicion del enemigo: x = " + _enemyX + " y = " + _enemyY);
+            double futureX = _enemyX + Math.sin(Math.toRadians(_enemyHeading)) * _enemyVelocity * 20;
+            double futureY = _enemyY + Math.cos(Math.toRadians(_enemyHeading)) * _enemyVelocity * 20;
 
-        // Calcular el ángulo hacia la posición futura del enemigo
-        double anguloHaciaEnemigo = calcularAngulo(_r.getX(), _r.getY(), futureX, futureY);
+            // Calcular el ángulo hacia la posición futura del enemigo
+            double anguloHaciaEnemigo = calcularAngulo(_r.getX(), _r.getY(), futureX, futureY);
 
-        // Ajustar el cañón hacia el ángulo del enemigo
-        double anguloCañon = normalizarAngulo(anguloHaciaEnemigo - _r.getGunHeading());
-        _r.turnGunRight(anguloCañon);
+            // Ajustar el cañón hacia el ángulo del enemigo
+            double anguloCañon = normalizarAngulo(anguloHaciaEnemigo - _r.getGunHeading());
+            _r.setTurnGunRight(anguloCañon);
 
-        // Disparar si el cañón está casi alineado con el enemigo
-        if (Math.abs(anguloCañon) < 10) {
-            double potenciaDisparo = Math.min(3.0, Math.max(1.0, 400 / _e.getDistance()));  // Potencia en función de la distancia
-            _r.fire(potenciaDisparo);
+            double distancia = distancia(_r.getX(), _r.getY(), futureX, futureY);
+            // Disparar si el cañón está casi alineado con el enemigo
+            if (Math.abs(anguloCañon) < 10) {
+                double potenciaDisparo = Math.min(3.0, Math.max(1.0, 400 / distancia));  // Potencia en función de la distancia
+                _r.fire(potenciaDisparo);
+            }
         }
     }
     
@@ -332,6 +350,11 @@ public class TeamLogic {
     // Método auxiliar para calcular el ángulo entre dos puntos (igual que antes)
     private double calcularAngulo(double x1, double y1, double x2, double y2) {
         return Math.toDegrees(Math.atan2(x2 - x1, y2 - y1));
+    }
+    
+    // Mètode per calcular la distància entre dos punts
+    public double distancia(double x1, double y1, double x2, double y2) {
+        return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     }
 
 }
