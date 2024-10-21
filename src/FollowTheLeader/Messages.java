@@ -125,5 +125,17 @@ public class Messages {
             return velocity;
         }
     }
+    
+    public static class ActualTime implements Serializable {
+        private long Time;
+        
+        public ActualTime(long actualTime){
+            Time = actualTime;
+        }
+        
+        public long getTime(){
+            return Time;
+        }
+    }
 
 }

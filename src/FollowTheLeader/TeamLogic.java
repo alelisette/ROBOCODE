@@ -45,7 +45,7 @@ public class TeamLogic {
         _scanCentro = false;
         _contador = 0;
         _cambioRoles = false;
-        lastRoleChangeTime = 0; // Guardar el turno en que inicia
+        lastRoleChangeTime = 0;
     }
     
     public void setLastRoleChanged(long time){
@@ -228,9 +228,18 @@ public class TeamLogic {
     }
     
     public void invertirJerarquia() {
-        if (lastRoleChangeTime - _r.getTime() >= 15) { // Cada 15 segundos
-            _cambioRoles = !_cambioRoles;
+        if(lastRoleChangeTime==0){
             lastRoleChangeTime = System.currentTimeMillis();
+            // Enviamos el timepo actual
+            try {
+                _r.broadcastMessage(new Messages.ActualTime(lastRoleChangeTime));
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+        System.out.println("Timpo actual: " + (System.currentTimeMillis() - lastRoleChangeTime) + " ms");
+        if (System.currentTimeMillis() - lastRoleChangeTime >= 15000) { // Cada 15 segundos
+            _cambioRoles = !_cambioRoles;
 
             // Crear una lista de los robots en orden jerárquico
             List<Map.Entry<String, Integer>> listaJerarquia = new ArrayList<>(jerarquia.entrySet());
@@ -246,17 +255,17 @@ public class TeamLogic {
                 System.out.println("Posicion " + i + ": " + listaJerarquia.get(i).getKey());
                 jerarquia.put(listaJerarquia.get(i).getKey(), i + 1);
             }
-
+            
             // Notificar a los demás robots de la nueva jerarquía
+            TeamLogic.setJerarquia(jerarquia); // Guardamos la jerarquía globalmente
             try {
-                TeamLogic.setJerarquia(jerarquia); // Guardamos la jerarquía globalmente
-                // Enviamos un mensaje a todos para cambiar de estado
-                _r.broadcastMessage(new Messages.ChangeState());
+                _r.broadcastMessage(new Messages.Hierarchy(jerarquia));
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
-
-            //System.out.println("Nueva jerarquía: " + jerarquia);
+            if(!TeamLogic.getTeamLeader().equals(_r.getName())){
+                _r.setEstat(new EstatSeguidor(_r));
+            }
         }
     }
 

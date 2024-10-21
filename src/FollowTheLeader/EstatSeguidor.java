@@ -95,13 +95,18 @@ public class EstatSeguidor extends Estat {
             // Actualizar la información del enemigo con los datos recibidos
             _r._logic.setEnemyValues(posMsg.getX(), posMsg.getY(), 
                     posMsg.getHeading(), posMsg.getVelocity());        
-        } else if(e.getMessage() instanceof Messages.ChangeState){
+        } else if (e.getMessage() instanceof Messages.Hierarchy hierarchyMsg) {
+            TeamLogic.setJerarquia(hierarchyMsg.getHierarchy()); // Guardamos la jerarquía
+            // Comprobar si este robot es el nuevo TL
             if(TeamLogic.getTeamLeader().equals(_r.getName())){
+                _r._logic.setLastRoleChanged(0);
                 _r.setEstat(new EstatTL(_r));
             } else {
                 nameFollow = TeamLogic.getPrevious(_r.getName());
                 tlName = TeamLogic.getTeamLeader();
-            }
+            }    
+        } else if (e.getMessage() instanceof Messages.ActualTime timemsg) {
+            _r._logic.setLastRoleChanged(timemsg.getTime());
         }
     }
 

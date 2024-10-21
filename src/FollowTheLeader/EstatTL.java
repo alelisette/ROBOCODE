@@ -28,7 +28,6 @@ public class EstatTL extends Estat{
         _r.setScanColor(Color.RED);
         _r.setBulletColor(Color.GREEN);  
         inicializarEsquinas();
-        _r._logic.setLastRoleChanged(_r.getTime());
         proximaEsquina = calcularEsquinaMasCercana();
     }
 
